@@ -1,113 +1,285 @@
-import Image from 'next/image'
+'use client'
+import Image from 'next/image';
+import Head from 'next/head';
+import { useState, useEffect } from 'react';
+import '../node_modules/bootstrap/dist/css/bootstrap.min.css';
+import LoginButton from './signin/LoginButton';
+import SignUp from './signup/SignUp';
+import { useRef } from 'react';
+import Player from './Player/Player';
+import Artist from './Player/Artist';
+import { Button, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
+import Similar from './Player/Similar'
+import Link from 'next/link'
+
+// import Portal from './Portal/portal'
 
 export default function Home() {
+
+  const audioRef = useRef();
+
+  const suggestions = ['Dune', 'First Flight', 'Pirates Of Carribean', 'Can you hear the music', 'Dream is collapsing'];
+
+  const [showDiv, setShowDiv] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+  const [filePath, setFilePath] =  useState('')
+  const [prio, setPrio] = useState(1);
+  const [artist, setArtist] = useState('');
+  const [title, setTitle] = useState('')
+  const [similarSongs, setSimilarSongs] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+const [timer, setTimer] = useState(null);
+const [isAuthenticated, setIsAuthenticated] = useState(false);
+const [error, setError] = useState('');
+  const token = localStorage.getItem('token')
+
+fetch('http://localhost:8080/graphql', {
+  method: 'POST',
+  headers: {
+    Authorization: 'bearer ' + token,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    query: `
+      query {
+        authentication
+      }
+    `,
+  }),
+})
+.then(res=>{
+  return res.json();
+}).then(res => {
+  console.log(res);
+  if(res.erros && res.errors[0].status===420){
+    setIsAuthenticated(false);
+  }
+  if (res.errors) {
+    console.log(res.errors);
+    throw new Error('User login failed');
+  }
+  setIsAuthenticated(true);
+})
+.catch(error => {
+  console.error(error);
+  setIsAuthenticated(false);
+});
+
+ useEffect(() => {
+      // Check if localStorage token is available
+      const token = localStorage.getItem('token');
+    
+      if (!token) {
+        setTimer(setTimeout(() => {
+          setIsModalOpen(true);
+        }, 300)); // 5000 milliseconds (5 seconds)
+      }
+    
+      return () => clearTimeout(timer); // Clear the timer on component unmount
+    }, []);
+
+  const handleInputChange = (event) => {
+    const inputValue = event.target.value;
+    setInputValue(inputValue);
+
+
+    // Filter suggestions based on input value
+    const filtered = suggestions.filter(suggestion =>
+      suggestion.replace(/\s+/g, '').toLowerCase().includes(inputValue.replace(/\s+/g, '').toLowerCase())
+    );
+    setFilteredSuggestions(filtered);
+  };
+///////////////////////
+const handleSearch = () => {
+  const type = localStorage.getItem('type')
+  setInputValue('')
+  setPrio(0);
+  setShowDiv(true); // Show the conditional div
+  const graphqlQuery = {
+    query: `
+      query {
+        musicPlayer(
+          songTitle: "${inputValue}"
+          currentType: "${type}"
+      
+        ){
+          filePath
+          type
+          artist
+          title
+          similarSongs
+        }
+      }
+    `
+  };
+
+  fetch('http://localhost:8080/graphql', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(graphqlQuery)
+  })
+    .then(res => {
+      return res.json();
+    })
+    .then(resData => {
+      
+      console.log(resData.errors)
+      if (resData.errors && resData.errors[0].status === 424) {
+        throw new Error("Fetching music data failed!");
+      }
+      if (resData.errors) {
+        // alert('failed')
+        // console.log(resData.errors[0].message);
+        setError(resData.errors[0].message)
+        setIsErrorModalOpen(true)
+        // console.log(resData.errors);
+      }
+      console.log("similar songs data "  +resData)
+      setPrio(1);
+      setFilePath(resData.data.musicPlayer.filePath)
+      setArtist(resData.data.musicPlayer.artist)
+      setTitle(resData.data.musicPlayer.title)
+      console.log(resData.data.musicPlayer.similarSongs);
+      setSimilarSongs(resData.data.musicPlayer.similarSongs)
+      localStorage.setItem('type' , resData.data.musicPlayer.type)
+    })
+    .catch(error => {
+      // console.error(error);
+      // setError('User creation failed');
+    });
+};
+
+const handlePlay = (event) =>{
+  event.preventDefault();
+  audioRef.current.play();
+}
+
+  const handlePause = (event) =>{
+    event.preventDefault();
+    audioRef.current.pause();
+  }
+
+
+  const handleSuggestionClick = (suggestion) => {
+    setInputValue(suggestion);
+    setFilteredSuggestions([]);
+
+  };
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
+  
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setIsErrorModalOpen(false)
+  };
+  
+////////////////////////////
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.js</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
+    <>
+    {/* <Portal/> */}
+    {isModalOpen && !localStorage.getItem('token') && (
+ <Modal isOpen={isModalOpen} toggle={closeModal}>
+        <ModalHeader toggle={closeModal}>Login </ModalHeader>
+        <ModalBody>
+          <form>
+            <label>Email:</label>
+            <input
+              type="email"
+              // value={email}
+              // onChange={(e) => setEmail(e.target.value)}
             />
-          </a>
+            <label>Password:</label>
+            <input
+              type="password"
+              // value={password}
+              // onChange={(e) => setPassword(e.target.value)}
+            />
+            <button type="submit">Login</button>
+          </form>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" onClick={closeModal}>Close</Button>
+        </ModalFooter>
+      </Modal>
+)}
+
+       <nav className="navbar navbar-expand-lg navbar-light navbar-dark bg-dark">
+        <div className="container">
+          <a className="navbar-brand" href="#">Spoti-Clone</a>
+          <div className="ml-auto">
+            <LoginButton />
+           { !isAuthenticated?<SignUp />:null}
+          </div>
+          {isAuthenticated ? (
+      <Link href="/Profile"> {/* Replace "/profile" with your actual profile page URL */}
+        <div className="profile">
+          {localStorage.getItem('email') && localStorage.getItem('email')[0].toUpperCase()}
+        </div>
+      </Link>
+    ) : null}
+        </div>
+      </nav>
+      {/* <audio src={'/music/dune.mp3'} controls ></audio> */}
+     
+      <div>
+      <div>
+        <div className="theForm">
+          <form>
+            <input
+              placeholder='Search music, album, artist'
+              value={inputValue}
+              onChange={handleInputChange}
+            />
+            <div className="btn">
+              <button onClick={handleSearch} type="button">Search</button>
+            </div>
+            {inputValue && (
+              <div className="suggestions">
+                {filteredSuggestions.map((suggestion, index) => (
+                  <div
+                    key={index}
+                    className="suggestion"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                  >
+                    {suggestion}
+                  </div>
+                ))}
+              </div>
+            )}
+          </form>
         </div>
       </div>
+     
+      {showDiv && !error && (
+  <div className="conditionalDiv">
+    {/* <Similar setPrio={setPrio} setFilePath={setFilePath} setArtist={setArtist} setTitle={setTitle} similarSongs={similarSongs} /> */}
+    <Artist artist={artist} title={title} />
+  </div>
+)}
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
+{error && isErrorModalOpen && (
+  <Modal isOpen={isErrorModalOpen} toggle={closeModal}>
+    <div className="error">
+      {error}
+    </div>
+    <Button color="secondary" onClick={closeModal}>Close</Button>
+  </Modal>
+)}
       </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800 hover:dark:bg-opacity-30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore the Next.js 13 playground.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+      {/* <button onClick={handlePlay} >play-audio</button>
+      <hr/>
+      {console.log("FILEPATH ======== "+filePath)}
+      <button onClick={handlePause} >pause-audio</button> */}
+      {!inputValue && filePath && (
+        <div className="audioDiv">
+          <Player  suggestions={suggestions} title={title} artist={artist} setArtist={setArtist} setTitle={setTitle} setSimilarSongs={setSimilarSongs} similarSongs={similarSongs} filePath={filePath} setPrio={setPrio} prio={prio} />
+        </div>
+      )}
+    </>
+  );
 }

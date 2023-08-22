@@ -1,0 +1,78 @@
+.profileCont {
+  position: absolute;
+  top: 2%;
+  left: 24%;
+  border-radius: 20px;
+  background-color: #f4f4f4;
+  width: 45%;
+  height: 92vh;
+  padding: 20px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.imageDiv {
+  border-radius: 50%;
+  background-color: #e1e1e1;
+  height: 29vh;
+  width: 190px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.imageDiv img {
+  position: relative;
+  left: 17%;
+  border-radius: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
+}
+
+.fileInput {
+  display: none;
+}
+
+.upData {
+  display: flex;
+  justify-content: space-between;
+}
+
+.profiledata {
+  flex: 1;
+  padding-left: 20px;
+  color: #333;
+}
+
+.musicPreferences {
+  background-color: #e1e1e1;
+  border-radius: 10px;
+  padding: 20px;
+  margin-right: 20px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  color: #333;
+}
+
+.lovesToListen {
+  background-color: #e1e1e1;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  color: #333;
+}
+
+.musicAndLoves {
+  position: relative;
+  top: 20%;
+  display: flex;
+}
+
+.formDiv{
+  right: 27%;
+  color: green;
+  position: relative;
+  top: 65%;
+
+}
