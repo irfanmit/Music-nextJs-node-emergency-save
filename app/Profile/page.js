@@ -11,8 +11,7 @@ export default function App() {
   const userEmail = localStorage.getItem('email');
 
   const submit = async event => {
-    event.preventDefault();
-    // alert('submitted');
+    event.preventDefault()
     
     const formData = new FormData();
     formData.append("image", file);
